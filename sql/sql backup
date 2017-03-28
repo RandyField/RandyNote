@@ -1,0 +1,102 @@
+
+
+检验中心名称：绑定  绩效规则名称:绑定 员工姓名:模糊查询
+
+
+根据检验中心名称查询-需要查询MAN_ORGWORKERINFO表中 的所有员工staff_no
+
+取到了 作为查询条件 
+
+
+
+		BSI_EMPLOYEEASSESSMENTRESULT
+
+职员：MAN_ORGWORKERINFO
+
+绩效规则名称：BSI_ASSESSMENTRULE
+
+考核时间段：BSI_ASSESSMENTRULE_cycle_no
+
+绩效占比:读取BSI_ASSESSMENTRULECONFIG
+
+考X结果：() () ()= ()
+
+评语：
+
+
+
+select ID, Staff_No, KPI_NO, Appraisal_Result, 
+Time_Created, Time_Modified, Operator, 
+Reserved_1, Reserved_2,Result.PERFORMANCE_RULE_NO,
+Reserved_3,Worker.STAFF_NAME,Worker.WORKROLE_NO,
+Worker.INSP_CTR_NO,Rule.RULE_NAME
+from (Bsi_EmployeeAssessmentResult  Result
+left join MAN_ORGWORKERINFO  Worker  
+			on (Result.STAFF_NO=Worker.STAFF_NO)) 
+left join BSI_ASSESSMENTRULE  Rule 
+			on (Result.PERFORMANCE_RULE_NO=Rule.PERFORMANCE_RULE_NO)
+where Worker.INSP_CTR_NO='xxxx' 
+AND Worker.STAFF_NAME LIKE '%XX%'
+AND Result.PERFORMANCE_RULE_NO=""
+
+
+CREATE OR REPLACE PROCEDURE P_QUERY(P_TABLENAME    IN VARCHAR2, --表名
+                                    P_STRWHERE     IN VARCHAR2, --查询条件
+                                    P_ORDERCOLUMN  IN VARCHAR2, --排序的列
+                                    P_ORDERSTYLE   IN VARCHAR2, --排序方式
+                                    P_CURPAGE      IN OUT NUMBER, --当前页
+                                    P_PAGESIZE     IN OUT NUMBER, --每页显示记录条数
+                                    P_TOTALRECORDS OUT NUMBER, --总记录数
+                                    P_TOTALPAGES   OUT NUMBER, --总页数
+                                    V_CUR          OUT SYS_REFCURSOR) --返回的结果集
+ IS
+  V_SQL         VARCHAR2(4000) := ''; --sql语句
+  V_STARTRECORD NUMBER(8); --开始显示的记录条数
+  V_ENDRECORD   NUMBER(8); --结束显示的记录条数
+BEGIN
+  --记录中总记录条数
+  V_SQL := 'SELECT TO_NUMBER(COUNT(*)) FROM ' || P_TABLENAME ||
+           ' WHERE 1=1 ';
+  IF P_STRWHERE IS NOT NULL OR P_STRWHERE <> '' THEN
+    V_SQL := V_SQL || P_STRWHERE;
+  END IF;
+  EXECUTE IMMEDIATE V_SQL
+    INTO P_TOTALRECORDS;
+
+  --验证页面记录大小
+  IF P_PAGESIZE < 0 THEN
+    P_PAGESIZE := 0;
+  END IF;
+
+  --根据页大小计算总页数
+  IF MOD(P_TOTALRECORDS, P_PAGESIZE) = 0 THEN
+    P_TOTALPAGES := P_TOTALRECORDS / P_PAGESIZE;
+  ELSE
+    P_TOTALPAGES := CEIL(P_TOTALRECORDS / P_PAGESIZE); --向上取整，等同于p_totalPages := p_totalRecords / p_pageSize +1；
+  END IF;
+
+  --验证页号
+  IF P_CURPAGE < 1 THEN
+    P_CURPAGE := 1;
+  END IF;
+  IF P_CURPAGE > P_TOTALPAGES THEN
+    P_CURPAGE := P_TOTALPAGES;
+  END IF;
+
+  --实现分页查询
+  V_STARTRECORD := (P_CURPAGE - 1) * P_PAGESIZE + 1;
+  V_ENDRECORD   := P_CURPAGE * P_PAGESIZE;
+  V_SQL         := 'SELECT * FROM (SELECT A.*, rownum r FROM ' ||
+                   '(SELECT * FROM ' || P_TABLENAME;
+  IF P_STRWHERE IS NOT NULL OR P_STRWHERE <> '' THEN
+    V_SQL := V_SQL || ' WHERE 1=1 ' || P_STRWHERE;
+  END IF;
+  IF P_ORDERCOLUMN IS NOT NULL OR P_ORDERCOLUMN <> '' THEN
+    V_SQL := V_SQL || ' ORDER BY ' || P_ORDERCOLUMN || ' ' || P_ORDERSTYLE;
+  END IF;
+  V_SQL := V_SQL || ') A WHERE rownum <= ' || V_ENDRECORD ||
+           ') B WHERE r >= ' || V_STARTRECORD;
+  DBMS_OUTPUT.PUT_LINE(V_SQL);
+  OPEN V_CUR FOR V_SQL;
+END P_QUERY;
+

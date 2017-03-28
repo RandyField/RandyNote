@@ -1,0 +1,139 @@
+--select * from bsi_employeeassessmentresult
+
+create or replace P_DELETE_ASSESSMENTRESULT(
+p_stuff_no nvarchar(20),
+p_performance_rule_no number,
+p_reserved_1 nvarchar(100),
+p_reserved_2 nvarchar(100)
+)
+is
+begin 
+  
+ 
+
+delete  from BSI_EMPLOYEEASSESSMENTRESULT 
+where STUFF_NO=p_stuff_no
+AND PERFORMANCE_RULE=p_performance_rule_no
+AND RESERVED_1=p_reserved_1
+AND RESERVED_2=p_reserved_2
+
+
+
+end
+
+
+
+create or replace procedure P_DELETE_ASSESSMENTRESULT(p_stuff_no            varchar2,
+                                                      p_performance_rule_no number,
+                                                      p_reserved_1          varchar2,
+                                                      p_reserved_2          varchar2,
+                                                      P_RESULT_CODE         OUT VARCHAR2, --  返回代碼
+                                                      P_RESULT_MESSAGE      OUT VARCHAR2 --  返回消息
+                                                      
+                                                      ) is
+begin
+
+  delete from BSI_EMPLOYEEASSESSMENTRESULT t
+   where t.Staff_No = p_stuff_no
+     AND   t.performance_rule_no = p_performance_rule_no
+     AND RESERVED_1 = p_reserved_1
+     AND RESERVED_2 = p_reserved_2;
+
+  COMMIT;
+  P_RESULT_CODE    := '1';
+  P_RESULT_MESSAGE := '成功!';
+
+EXCEPTION
+
+  WHEN OTHERS THEN
+    ROLLBACK;
+    P_RESULT_CODE    := '0';
+    P_RESULT_MESSAGE := '系統異常:' || SQLERRM;
+  
+end;
+
+
+
+
+
+/// <summary>
+        /// 执行存储过程，返回执行结果
+        /// </summary>
+        /// <param name="storedProcName">存储过程名</param>
+        /// <param name="parameters">存储过程参数</param>
+        /// <returns></returns>
+        public static bool RunRrocedureM(string storedProcName, IDataParameter[] parameters, int num)
+        {
+            bool rs = true;
+            OracleConnection conn = new OracleConnection(PubConstant.ConnectionString);
+            try
+            {
+                conn.Open();//打开
+                OracleCommand cmd = conn.CreateCommand();
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.CommandText = storedProcName;//存储过程名
+                cmd.Parameters.AddRange(parameters);//参数
+
+                cmd.ExecuteNonQuery();//执行
+
+                int rows;
+                rows = Convert.ToInt32(parameters[num].Value.ToString());//返回值，“1”为成功，“0”为失败
+
+                // Common.Log.Logger.Info("“1”为成功，“0”为失败" + rows);
+                string message = parameters[num + 1].Value.ToString();
+                if (rows != 1)
+                {
+                    rs = false;
+                }
+            }
+            catch (Exception ex)
+            {
+
+                Logger.FatalFormat("执行RunRrocedureM(执行存储过程，返回执行结果)异常:{0}", ex.Message);
+                rs = false;
+            }
+            finally
+            {
+                conn.Close();//关闭连接
+            }
+
+            return rs;
+        }
+
+
+
+
+        /// <summary>
+        /// 工作地點抽籤
+        /// </summary>
+        /// <param name="drawer">抽籤人</param>
+        /// <param name="drawNo">抽籤編號</param>
+        /// <param name="msg">錯誤信息</param>
+        /// <returns></returns>
+        public bool WorkPlaceDraw(string drawer, out string drawNo, out string msg)
+        {
+            bool R = false;
+
+            OracleParameter[] parameters = {
+					new OracleParameter("p_drawer", OracleType.VarChar,50),
+                    new OracleParameter("p_drawNo", OracleType.VarChar,50),
+					new OracleParameter("p_result_code", OracleType.Number,4),
+					new OracleParameter("p_result_message", OracleType.VarChar,100)};
+
+            parameters[0].Value = drawer;
+
+            parameters[0].Direction = ParameterDirection.Input;
+            parameters[1].Direction = ParameterDirection.Output;
+            parameters[2].Direction = ParameterDirection.Output;
+            parameters[3].Direction = ParameterDirection.Output;
+
+            // DbHelperOra.RunProcedure("SP_BUSSINESS.P_WorkPlaceDraw", parameters，3);
+            if (DbHelperOra.RunRrocedureM("SP_BUSSINESS.P_WorkPlaceDraw", parameters, 2))
+            {
+                R = true;
+            }
+            drawNo = parameters[1].Value.ToString();
+            msg = parameters[3].Value.ToString();
+
+            return R;
+        }

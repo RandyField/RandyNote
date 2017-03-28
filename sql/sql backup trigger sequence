@@ -1,0 +1,53 @@
+-- Create sequence 
+create sequence SEQ_BSI_LEAVEINFO
+minvalue 1
+maxvalue 99999999999999999999
+start with 1
+increment by 1
+cache 20;
+
+
+create or replace trigger TRI_BSI_LEAVEINFO
+  before insert on BSI_LEAVEINFO  
+  for each row
+when (new.id is null)
+begin
+  select SEQ_BSI_LEAVEINFO.nextval into :new.id from dual;
+end;
+
+15014
+
+select * from MAN_ORGWORKERINFO
+select * from BSI_LEAVEINFO for update
+
+select * from sys_hiddencodetype where parameter_type_no='35'
+
+select * from sys_code where parameter_type_no='35' for update
+
+
+create proc sp_deltet_BSI_EMPLOYEEASSESSMENTRESULT
+@stuff_no nvarchar(20),
+@performance_rule_no number,
+@reserved_1 nvarchar(100),
+@reserved_2 nvarchar(100)
+as
+begin try
+begin transaction
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,39 @@
+select Distinct(a.computername),a.hardsn  from TS_SOCKETLIB_CONFIG a left join TH_HARDWARE_STATE b on a.computername = b.computername  where a.projectname LIKE '%LCD%'
+select  computername from TH_HARDWARE_STATE 
+
+
+
+select * from
+(select computername,cityname,linename,stationname,position from TS_SOCKETLIB_CONFIG 
+where projectname like '%LCD%') a
+left join 
+(select computername,errornum,producetime from TH_HARDWARE_STATE t 
+where producetime=
+(select top 1 producetime from TH_HARDWARE_STATE where computername=t.computername order by ABS(DATEDIFF(second,getdate(),producetime)))) b
+on a.computername = b.computername
+
+
+
+select * from
+(select computername,cityname,linename,stationname,position from TS_SOCKETLIB_CONFIG 
+where projectname like '%LCD%') a
+left join 
+(select computername,errornum,producetime from TH_HARDWARE_STATE t 
+where producetime=
+(select max(producetime) from TH_HARDWARE_STATE where computername=t.computername )) b
+on a.computername=b.computername
+
+
+
+select * from
+(select computername,cityname,linename,stationname,position from TS_SOCKETLIB_CONFIG 
+where projectname like '%LCD%') a
+left join 
+(select a.* from (select computername,max(producetime) as latestTime  from TH_HARDWARE_STATE group by computername)a
+ join
+ (select computername,errornum,producetime from TH_HARDWARE_STATE ) t on a.computername=t.computername and a.latestTime=t.producetime) c
+  on a.computername=c.computername
+
+
+
+  select linename from TS_SOCKETLIB_CONFIG where computername='C040301B1011500'
